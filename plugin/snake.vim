@@ -6,8 +6,8 @@ function! Snake()
 endfunction
 
 function! GameLoop()
-    let height = &lines - 1
-    let width = &columns
+    let height = 20
+    let width = 50
     let snake_body = [[1, 1]]
     let cur_dir = [1, 0]
     let food_pos = GenerateFoodPos(snake_body, height, width)
@@ -87,6 +87,12 @@ endfunction
 
 function! GetInput()
     let c = getchar(0)
+    " Clear the input buffer. We do this so we don't fill up the input buffer
+    " faster than we process it. When that happens, the snake will move based
+    " on the keys queued up in the input buffer rather than the player's
+    " input.
+    while getchar(0)
+    endwhile
     if c == 0
         return ''
     else
@@ -95,10 +101,19 @@ function! GetInput()
 endfunction
 
 function! ClearBoard(height, width)
+    let right_border = ''
+    let lower_right_corner = ''
+    if a:width < &columns
+        let right_border = '|'
+        let lower_right_corner = '+'
+    endif
     let spaces = repeat(' ', a:width)
     for y in range(1, a:height)
-        call setline(y, spaces)
+        call setline(y, spaces . right_border)
     endfor
+    if a:height < &lines-1
+        call setline(a:height+1, repeat('-', a:width) . lower_right_corner)
+    endif
 endfunction
 
 function! DrawChar(char_to_draw, pos)
