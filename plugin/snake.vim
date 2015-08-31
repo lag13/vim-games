@@ -6,18 +6,14 @@ function! Snake()
 endfunction
 
 function! GameLoop()
-    let height = 20
-    let width = 50
+    let height = min([20, &lines-1])
+    let width = min([50, &columns])
     let snake_body = [[1, 1]]
     let cur_dir = [1, 0]
     let food_pos = GenerateFoodPos(snake_body, height, width)
     call DrawBoard(height, width, snake_body, food_pos)
     while 1
-        let input = GetInput()
-        if input ==? 'q'
-            break
-        endif
-        let [snake_body, cur_dir, food_pos] = UpdateSnake(input, snake_body, cur_dir, food_pos, height, width)
+        let [snake_body, cur_dir, food_pos] = UpdateSnake(snake_body, cur_dir, food_pos, height, width)
         if snake_body ==# [[0, 0]]
             break
         endif
@@ -40,27 +36,47 @@ function! Tail(lst)
     return new_lst
 endfunction
 
-function! GetNewDir(input, cur_dir)
-    let new_dir = a:cur_dir
-    if a:input ==# 'h'
-        let new_dir = [0, -1]
-    elseif a:input ==# 'j'
-        let new_dir = [1, 0]
-    elseif a:input ==# 'k'
-        let new_dir = [-1, 0]
-    elseif a:input ==# 'l'
-        let new_dir = [0, 1]
-    endif
-    " Prevent the user from moving in the opposite direction
-    if AddVector(new_dir, a:cur_dir) ==# [0, 0]
-        return a:cur_dir
-    else
-        return new_dir
-    endif
+function! GetNewDir(cur_dir)
+    let new_dir = [0, 0]
+    " For the most part this game was working fine but occasionally I would
+    " run into an issue where my input didn't seem to register with the game.
+    " For example, I would hit 'j' then 'l' in quick succession and the 'j'
+    " would register but the 'l' wouldn't. I'm not sure how other games do it
+    " (perhaps they have a dedicated thread which continuously reads user
+    " input) but this solution seems to work. Namely I keep consuming a
+    " character from the input until I get something 'meaningful' or until it
+    " is exhausted (at which point I just return the current direction of
+    " travel). 'Meaningful' in this context is a direction perpendicular to
+    " the current direction of travel.
+    while 1
+        let input = GetInput()
+        if input ==# ''
+            return a:cur_dir
+        endif
+        if input ==# 'h'
+            let new_dir = [0, -1]
+        elseif input ==# 'j'
+            let new_dir = [1, 0]
+        elseif input ==# 'k'
+            let new_dir = [-1, 0]
+        elseif input ==# 'l'
+            let new_dir = [0, 1]
+        elseif input ==? 'q'
+            return [0, 0]
+        endif
+        " Keep consuming input if the user tried to move in the same or
+        " opposite direction.
+        if AddVector(new_dir, a:cur_dir) !=# [0, 0] && new_dir !=# a:cur_dir
+            return new_dir
+        endif
+    endwhile
 endfunction
 
-function! UpdateSnake(input, snake_body, cur_dir, food_pos, height, width)
-    let new_dir = GetNewDir(a:input, a:cur_dir)
+function! UpdateSnake(snake_body, cur_dir, food_pos, height, width)
+    let new_dir = GetNewDir(a:cur_dir)
+    if new_dir ==# [0, 0]
+        return [[[0, 0]], [0, 0], [0, 0]]
+    endif
 
     let new_snake_body = a:snake_body
     if GameOver(a:height, a:width, a:snake_body)
@@ -87,12 +103,6 @@ endfunction
 
 function! GetInput()
     let c = getchar(0)
-    " Clear the input buffer. We do this so we don't fill up the input buffer
-    " faster than we process it. When that happens, the snake will move based
-    " on the keys queued up in the input buffer rather than the player's
-    " input.
-    while getchar(0)
-    endwhile
     if c == 0
         return ''
     else
