@@ -1,55 +1,59 @@
-function! Snake()
-    call SeedRNG(localtime())
-    call ClearBuffer()
-    call GameLoop()
-    call QuitGame()
+function! snake#snake()
+    call util#seedRNG(localtime())
+    call util#clearBuffer()
+    call s:gameLoop()
+    call util#quitGame()
 endfunction
 
-function! GameLoop()
+function! s:gameLoop()
     let height = min([20, &lines-1])
     let width = min([50, &columns])
     let snake_body = [[1, 1]]
     let cur_dir = [1, 0]
-    let food_pos = GenerateFoodPos(snake_body, height, width)
-    call DrawBoard(height, width, snake_body, food_pos)
+    let food_pos = s:generateFoodPos(snake_body, height, width)
+    call s:drawBoard(height, width, snake_body, food_pos)
     while 1
-        let [snake_body, cur_dir, food_pos] = UpdateSnake(snake_body, cur_dir, food_pos, height, width)
+        let [snake_body, cur_dir, food_pos] = s:updateSnake(snake_body, cur_dir, food_pos, height, width)
         if snake_body ==# [[0, 0]]
             break
         endif
-        call DrawBoard(height, width, snake_body, food_pos)
-        sleep 50ms
+        call s:drawBoard(height, width, snake_body, food_pos)
+        sleep 70ms
     endwhile
 endfunction
 
-function! GameOver(height, width, snake_body)
+function! s:gameOver(height, width, snake_body)
     let head_pos = a:snake_body[0]
-    if index(Tail(a:snake_body), head_pos) != -1 || head_pos[0] < 1 || head_pos[1] < 1 || head_pos[0] > a:height || head_pos[1] > a:width
+    if index(s:tail(a:snake_body), head_pos) != -1 || head_pos[0] < 1 || head_pos[1] < 1 || head_pos[0] > a:height || head_pos[1] > a:width
         return 1
     endif
     return 0
 endfunction
 
-function! Tail(lst)
+function! s:tail(lst)
     let new_lst = deepcopy(a:lst)
     call remove(new_lst, 0)
     return new_lst
 endfunction
 
-function! GetNewDir(cur_dir)
+function! s:getNewDir(cur_dir)
     let new_dir = [0, 0]
     " For the most part this game was working fine but occasionally I would
     " run into an issue where my input didn't seem to register with the game.
     " For example, I would hit 'j' then 'l' in quick succession and the 'j'
     " would register but the 'l' wouldn't. I'm not sure how other games do it
     " (perhaps they have a dedicated thread which continuously reads user
-    " input) but this solution seems to work. Namely I keep consuming a
-    " character from the input until I get something 'meaningful' or until it
-    " is exhausted (at which point I just return the current direction of
-    " travel). 'Meaningful' in this context is a direction perpendicular to
-    " the current direction of travel.
+    " input) but this solution seems to work more often than not. What I do is
+    " keep consuming a character from the input until I get something
+    " 'meaningful' or until it is exhausted (at which point I just return the
+    " current direction of travel). 'Meaningful' in this context is a
+    " direction perpendicular to the current direction of travel. I still
+    " sometimes run into problems where it seems my keystrokes don't register.
+    " Perhaps sometimes vim can't register any new input when it is doing some
+    " sort of computation? That would definitely explain it. I bet that's what
+    " it is.
     while 1
-        let input = GetInput()
+        let input = s:getInput()
         if input ==# ''
             return a:cur_dir
         endif
@@ -66,20 +70,20 @@ function! GetNewDir(cur_dir)
         endif
         " Keep consuming input if the user tried to move in the same or
         " opposite direction.
-        if AddVector(new_dir, a:cur_dir) !=# [0, 0] && new_dir !=# a:cur_dir
+        if s:addVector(new_dir, a:cur_dir) !=# [0, 0] && new_dir !=# a:cur_dir && new_dir !=# [0, 0]
             return new_dir
         endif
     endwhile
 endfunction
 
-function! UpdateSnake(snake_body, cur_dir, food_pos, height, width)
-    let new_dir = GetNewDir(a:cur_dir)
+function! s:updateSnake(snake_body, cur_dir, food_pos, height, width)
+    let new_dir = s:getNewDir(a:cur_dir)
     if new_dir ==# [0, 0]
         return [[[0, 0]], [0, 0], [0, 0]]
     endif
 
     let new_snake_body = a:snake_body
-    if GameOver(a:height, a:width, a:snake_body)
+    if s:gameOver(a:height, a:width, a:snake_body)
         return [[[0, 0]], [0, 0], [0, 0]]
     endif
     let new_food_pos = a:food_pos
@@ -93,15 +97,15 @@ function! UpdateSnake(snake_body, cur_dir, food_pos, height, width)
         let new_snake_body[i] = new_snake_body[i-1]
         let i = i - 1
     endwhile
-    let new_snake_body[0] = AddVector(new_snake_body[0], new_dir)
+    let new_snake_body[0] = s:addVector(new_snake_body[0], new_dir)
     if should_gen_food
-        let new_food_pos = GenerateFoodPos(new_food_pos, a:height, a:width)
+        let new_food_pos = s:generateFoodPos(new_snake_body, a:height, a:width)
     endif
 
     return [new_snake_body, new_dir, new_food_pos]
 endfunction
 
-function! GetInput()
+function! s:getInput()
     let c = getchar(0)
     if c == 0
         return ''
@@ -110,7 +114,7 @@ function! GetInput()
     endif
 endfunction
 
-function! ClearBoard(height, width)
+function! s:clearBoard(height, width)
     let right_border = ''
     let lower_right_corner = ''
     if a:width < &columns
@@ -126,18 +130,18 @@ function! ClearBoard(height, width)
     endif
 endfunction
 
-function! DrawChar(char_to_draw, pos)
+function! s:drawChar(char_to_draw, pos)
     call cursor(a:pos)
     execute "normal r".a:char_to_draw
 endfunction
 
-function! DrawBoard(height, width, snake_body, food_pos)
+function! s:drawBoard(height, width, snake_body, food_pos)
     let char_to_draw = '#'
-    call ClearBoard(a:height, a:width)
+    call s:clearBoard(a:height, a:width)
     for s in a:snake_body
-        call DrawChar(char_to_draw, s)
+        call s:drawChar(char_to_draw, s)
     endfor
-    call DrawChar(char_to_draw, a:food_pos)
+    call s:drawChar(char_to_draw, a:food_pos)
     redraw
 endfunction
 
@@ -148,23 +152,23 @@ endfunction
 " right now (i.e just keep generating until it works). We could build a list
 " of available places for food and then randomly generate an index into that
 " list.
-function! GenerateFoodPos(snake_body, height, width)
-    let pos = GenRandomPos(a:height, a:width)
+function! s:generateFoodPos(snake_body, height, width)
+    let pos = s:genRandomPos(a:height, a:width)
     while 1
         if index(a:snake_body, pos) == -1
             return pos
         endif
-        let pos = GenRandomPos(a:height, a:width)
+        let pos = s:genRandomPos(a:height, a:width)
     endwhile
 endfunction
 
-function! GenRandomPos(height, width)
-    let y = Rand() % a:height + 1
-    let x = Rand() % a:width + 1
+function! s:genRandomPos(height, width)
+    let y = util#rand() % a:height + 1
+    let x = util#rand() % a:width + 1
     return [y, x]
 endfunction
 
-function! AddVector(v1, v2)
+function! s:addVector(v1, v2)
     let v3 = []
     let len1 = len(a:v1)-1
     let len2 = len(a:v2)-1
