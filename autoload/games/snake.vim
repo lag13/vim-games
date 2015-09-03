@@ -1,8 +1,8 @@
-function! snake#snake()
-    call util#seedRNG(localtime())
-    call util#clearBuffer()
+function! games#snake#snake()
+    call games#seedRNG(localtime())
+    call games#clearBuffer()
     call s:gameLoop()
-    call util#quitGame()
+    call games#quitGame()
 endfunction
 
 function! s:gameLoop()
@@ -163,8 +163,8 @@ function! s:generateFoodPos(snake_body, height, width)
 endfunction
 
 function! s:genRandomPos(height, width)
-    let y = util#rand() % a:height + 1
-    let x = util#rand() % a:width + 1
+    let y = games#rand() % a:height + 1
+    let x = games#rand() % a:width + 1
     return [y, x]
 endfunction
 

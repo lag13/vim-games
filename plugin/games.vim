@@ -1,12 +1,6 @@
-" TODO: Make a game like the chrome dinosaur game.
-if exists("g:loaded_games") || &cp || v:version < 700
-    finish
-endif
-let g:loaded_games = 1
-
 let g:game_default_games = {
-            \ 'snake':     'snake#snake',
+            \ 'snake':     'games#snake#snake',
             \ }
 
-command! -nargs=* -complete=customlist,util#filterGameList Game call util#runGame(<f-args>)
+command! -nargs=* -complete=customlist,games#filterGameList Game call games#runGame(<f-args>)
 

@@ -1,4 +1,4 @@
-function! util#seedRNG(seed)
+function! games#seedRNG(seed)
     let g:seed = a:seed % 509
 endfunction
 
@@ -10,7 +10,7 @@ endfunction
 " TODO: Consider using randomness from the system to generate random numbers:
 " http://stackoverflow.com/questions/20430493/how-to-generate-random-numbers-in-the-buffer
 " http://stackoverflow.com/questions/3062746/special-simple-random-number-generator
-function! util#rand()
+function! games#rand()
     let a = 35
     let c = 1
     let m = 509
@@ -18,7 +18,7 @@ function! util#rand()
     return g:seed
 endfunction
 
-function! util#clearBuffer()
+function! games#clearBuffer()
     " Open up a blank buffer
     -tabedit
     " Maximize screen space
@@ -37,13 +37,13 @@ function! util#clearBuffer()
     setlocal tabstop=1
 endfunction
 
-function! util#quitGame()
+function! games#quitGame()
     let &laststatus = g:save_laststatus
     let &showtabline = g:save_showtabline
     bdelete!
 endfunction
 
-function! util#runGame(game_name, ...)
+function! games#runGame(game_name, ...)
     if has_key(g:game_default_games, a:game_name)
         let Fn = function(g:game_default_games[a:game_name])
     else
@@ -60,7 +60,7 @@ function! util#runGame(game_name, ...)
     endif
 endfunction
 
-function! util#filterGameList(arg_lead, cmd_line_unused, cursor_pos_unused)
+function! games#filterGameList(arg_lead, cmd_line_unused, cursor_pos_unused)
     return filter(keys(g:game_default_games), 'stridx(v:val, a:arg_lead) == 0')
 endfun
 
